@@ -108,7 +108,7 @@ class BaseModel():
                 elif which_data == 'stl10':
                     if which_norm == 'batch':
                         save_filename = 'stl10_batch_Encoder_tanh_ep' + which_ep + '.pth'
-                        weight_path = '/share2/data/AONLOS/Dataset/TrainedWeight'
+                        weight_path = '../nlos-ot/TrainedWeight'
                         save_path = os.path.join(weight_path, save_filename)
                         state_dict = torch.load(save_path)
                         network.load_state_dict(state_dict)
@@ -167,7 +167,7 @@ class BaseModel():
                 elif which_data == 'stl10':
                     if which_norm == 'batch':
                         save_filename = 'stl10_batch_Decoder_tanh_ep' + which_ep + '.pth'
-                        weight_path = '/share2/data/AONLOS/Dataset/TrainedWeight'
+                        weight_path = '../nlos-ot/TrainedWeight'
                         save_path = os.path.join(weight_path, save_filename)
                         state_dict = torch.load(save_path)
                         network.load_state_dict(state_dict)
