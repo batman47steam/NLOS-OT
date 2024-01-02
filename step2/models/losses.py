@@ -29,7 +29,7 @@ class PerceptualLoss():
 	def contentFunc(self):
 		conv_3_3_layer = 14
 		cnn = models.vgg19()
-		pre = torch.load('/share2/data/AONLOS/Dataset/TrainedWeight/'+'vgg19-dcbb9e9d.pth')
+		pre = torch.load('../nlos-ot/TrainedWeight/'+'vgg19-dcbb9e9d.pth')
 		cnn.load_state_dict(pre)
 		cnn = cnn.features
 		cnn = cnn.cuda()
