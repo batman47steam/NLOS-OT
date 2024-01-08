@@ -7,7 +7,7 @@ from PIL import ImageOps
 import re
 import pdb
 
-class SingleDataset(BaseDataset):
+class SingleDataset(BaseDataset): # dataset部分还是挺简单的，就是两张图片对，也没什么其他的数据增强
     def initialize(self, opt):
         if opt.phase=='train':
             self.opt = opt
@@ -16,7 +16,7 @@ class SingleDataset(BaseDataset):
             self.dir_A = os.path.join(opt.datarootData)
             self.A_paths = make_dataset(self.dir_A)
             self.B_paths = make_dataset(self.dir_B)
-            self.A_paths = sorted(self.A_paths)
+            self.A_paths = sorted(self.A_paths) # 反正都用相同的规则进行排序了，所以就能构成这些数据对
             self.B_paths = sorted(self.B_paths)
 
 
