@@ -48,7 +48,7 @@ class ConditionalGAN(BaseModel):
 			which_ep = opt.which_ep
 
 			# load E1 and D1
-			self.load_ae(self.netG.encoder, which_ep,'E1', which_data,opt.norm)
+			self.load_ae(self.netG.encoder, which_ep,'E1', which_data,opt.norm) # 加载step1中训练时得到的权重
 			self.load_ae(self.netG.decoder, which_ep,'D', which_data,opt.norm)
 			in_content = input('Press Enter to CONFIRM trained AE weight loaded')
 
@@ -62,7 +62,7 @@ class ConditionalGAN(BaseModel):
 				self.optimizer_G_E2 = torch.optim.AdamW(self.encoder2.parameters(),lr=opt.lr,weight_decay=0.01)
 			else:
 				self.optimizer_G_E2 = torch.optim.Adam(self.encoder2.parameters(),lr=opt.lr)
-			self.contentLoss = init_loss(opt, self.Tensor)
+			self.contentLoss = init_loss(opt, self.Tensor) # 这个感知loss直接用更高级的vgg代替了
 			print('---------- Networks initialized -------------')
 			networks.print_network(self.netG.encoder)
 			networks.print_network(self.encoder2)
@@ -103,11 +103,11 @@ class ConditionalGAN(BaseModel):
 		self.real_B = Variable(self.input_B)
 		if self.opt.which_model_netG == 'introAE':
 			self.netG.eval()
-			self.latent_t, self.fake_B = self.netG(self.real_B)
+			self.latent_t, self.fake_B = self.netG(self.real_B) # 返回的是隐空间，以及解码以后的图片，可以说是step1中得到的结果
 			self.latent_t = self.latent_t.detach()
 			self.fake_B = self.fake_B.detach()
-			self.latent_i = self.encoder2(self.real_A)
-			self.fake_Bi = self.netG.decoder(self.latent_i)
+			self.latent_i = self.encoder2(self.real_A) # 由encoder2所得到的隐空间
+			self.fake_Bi = self.netG.decoder(self.latent_i) # encoder2得到的隐空间由step1的decoder解码的结果
 		else: 
 			raise ValueError('This repo only support the autoencoder modified from introAE, i.e., opt.which_model_netG == introAE. \
 			But you can use this option to add new model')
@@ -159,8 +159,8 @@ class ConditionalGAN(BaseModel):
 
 	def get_current_visuals(self):
 		real_A = util.tensor2im(self.real_A.data)
-		fake_B = util.tensor2im(self.fake_B.data)
-		fake_Bi = util.tensor2im(self.fake_Bi.data)
+		fake_B = util.tensor2im(self.fake_B.data) # fake_B是由step1中得到的结果
+		fake_Bi = util.tensor2im(self.fake_Bi.data) # fake_Bi是真正预测的结果, step2中得到的结果
 		real_B = util.tensor2im(self.real_B.data)
 		return OrderedDict([('Blurred_Train', real_A), ('Restored_Train', fake_B), ('Restored_Train_fromi', fake_Bi),('Sharp_Train', real_B)])
 

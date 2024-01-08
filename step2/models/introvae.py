@@ -58,7 +58,7 @@ class IntroAEEncoder(nn.Module):
             self.main = nn.Sequential(
                     nn.Conv2d(cdim, cc, 5, 1, 2, bias=False),
                     nn.BatchNorm2d(cc),
-                    nn.LeakyReLU(0.2),                
+                    nn.LeakyReLU(0.2), # 这里已经用了LeakyReLU了
                     nn.AvgPool2d(2),
                 )
         elif norm == 'instance':
@@ -71,8 +71,8 @@ class IntroAEEncoder(nn.Module):
               
         sz = image_size//2
         for ch in channels[1:]:
-            self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm,cc, ch, scale=1.0))
-            self.main.add_module('down_to_{}'.format(sz//2), nn.AvgPool2d(2))
+            self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm,cc, ch, scale=1.0)) # res_block不改变空间分辨率
+            self.main.add_module('down_to_{}'.format(sz//2), nn.AvgPool2d(2)) # 利用AvgPool单独的进行downsample
             cc, sz = ch, sz//2
         
         self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm, cc, cc, scale=1.0))                    
@@ -80,7 +80,7 @@ class IntroAEEncoder(nn.Module):
         self.fc2 = nn.Linear(2*hdim, hdim)           
     
     def forward(self, x):        
-        y = self.main(x).view(x.size(0), -1)
+        y = self.main(x).view(x.size(0), -1) # 从空间reshape成mlp能够接受的形式
         y = self.fc(y)
         y = self.fc2(y)          
         return y
@@ -92,9 +92,9 @@ class IntroAEDecoder(nn.Module):
         assert (2 ** len(channels)) * 4 == image_size
         
         cc = channels[-1]
-        self.fc = nn.Sequential(
+        self.fc = nn.Sequential( # 接受latent code的部分
                       nn.Linear(hdim, cc*4*4),
-                      nn.ReLU(True),
+                      nn.ReLU(True), # 这里怎么就直接用ReLU了
                   )
                   
         sz = 4
@@ -102,18 +102,18 @@ class IntroAEDecoder(nn.Module):
         self.main = nn.Sequential()
         for ch in channels[::-1]:
             self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm, cc, ch, scale=1.0))
-            self.main.add_module('up_to_{}'.format(sz*2), nn.Upsample(scale_factor=2, mode='nearest'))
+            self.main.add_module('up_to_{}'.format(sz*2), nn.Upsample(scale_factor=2, mode='nearest')) # 利用最近邻插值来实现上采样的
             cc, sz = ch, sz*2
        
         self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm, cc, cc, scale=1.0))
         self.main.add_module('predict', nn.Conv2d(cc, cdim, 5, 1, 2))
         # add a layer
-        self.main.add_module('tanh', nn.Tanh())
+        self.main.add_module('tanh', nn.Tanh()) # 激活函数用的是tanh吗，这个倒是有点出乎意料
 
     def forward(self, z):
         z = z.view(z.size(0), -1)
         y = self.fc(z)
-        y = y.view(z.size(0), -1, 4, 4)
+        y = y.view(z.size(0), -1, 4, 4) # reshape回去得到4x4的空间尺寸
         y = self.main(y)
         return y
 
