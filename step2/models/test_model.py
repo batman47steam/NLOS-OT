@@ -25,8 +25,8 @@ class TestModel(BaseModel):
             self.netG.cuda() # netG是完整的编码器，step1里面的
             self.encoder2.cuda() # encoder2是step2里面用来提取特征的
             # 新加入的，用来计算各个部分的参数量
-            # trainable_num = sum(p.numel() for p in self.encoder2.parameters() if p.requires_grad)
-            # print(trainable_num)
+            trainable_num = sum(p.numel() for p in self.encoder2.parameters() if p.requires_grad)
+            print(trainable_num)
             print(self.netG)
             self.load_network(self.netG.encoder, 'G_Encoder1', opt.which_epoch)
             self.load_network(self.netG.decoder, 'G_Decoder', opt.which_epoch)
