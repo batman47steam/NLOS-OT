@@ -22,8 +22,11 @@ class TestModel(BaseModel):
             str_to_list = lambda x: [int(xi) for xi in x.split(',')]
             self.netG = IntroAE(norm=opt.norm, gpuId = opt.gpu_ids,cdim=3, hdim=opt.hdim, channels=str_to_list(opt.channels), image_size=opt.output_height)
             self.encoder2 =IntroAEEncoder(norm=opt.norm,cdim=3, hdim=opt.hdim, channels=str_to_list(opt.channels), image_size=opt.output_height)
-            self.netG.cuda()
-            self.encoder2.cuda()
+            self.netG.cuda() # netG是完整的编码器，step1里面的
+            self.encoder2.cuda() # encoder2是step2里面用来提取特征的
+            # 新加入的，用来计算各个部分的参数量
+            # trainable_num = sum(p.numel() for p in self.encoder2.parameters() if p.requires_grad)
+            # print(trainable_num)
             print(self.netG)
             self.load_network(self.netG.encoder, 'G_Encoder1', opt.which_epoch)
             self.load_network(self.netG.decoder, 'G_Decoder', opt.which_epoch)
@@ -48,9 +51,9 @@ class TestModel(BaseModel):
         if self.opt.which_model_netG == 'introAE':
             self.netG.eval()
             self.encoder2.eval()
-            self.latent_t, self.fake_B = self.netG(self.real_B)
-            self.latent_i = self.encoder2(self.real_A)
-            self.fake_Bi = self.netG.decoder(self.latent_i)
+            self.latent_t, self.fake_B = self.netG(self.real_B) # step1的latent，以及step1的重建结果
+            self.latent_i = self.encoder2(self.real_A) # 输入real，由step2的encoder得到latent
+            self.fake_Bi = self.netG.decoder(self.latent_i) # latent再输入到step1的decoder得到重建结果
         else: 
             raise ValueError('This repo only support the autoencoder modified from introAE, i.e., opt.which_model_netG == introAE. \
 			But you can use this option to add new model')
@@ -64,4 +67,4 @@ class TestModel(BaseModel):
         fake_B = util.tensor2im(self.fake_B.data)
         real_B = util.tensor2im(self.real_B.data)
         fake_Bi = util.tensor2im(self.fake_Bi.data)
-        return OrderedDict([('real_A', real_A), ('fake_B', fake_B),('fake_Bi', fake_Bi),('real_B', real_B)])
+        return OrderedDict([('real_A', real_A), ('fake_B', fake_B),('fake_Bi', fake_Bi),('real_B', real_B)]) # 全部都放在了一个dict里面
