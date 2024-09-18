@@ -57,6 +57,8 @@ class SingleDataset(BaseDataset): # dataset部分还是挺简单的，就是两�
 
             self.transform = transforms.Compose(transform_list)
 
+        u1, u2 = self.find_unmatched_paths(self.A_paths, self.B_paths)
+
     def __getitem__(self, index):
         # load input images
         A_path = self.A_paths[index]
@@ -77,3 +79,16 @@ class SingleDataset(BaseDataset): # dataset部分还是挺简单的，就是两�
 
     def name(self):
         return 'SingleImageDataset'
+
+    def find_unmatched_paths(self, paths1, paths2):
+        # 获取路径列表中的文件名
+        filenames1 = [os.path.basename(path) for path in paths1]
+        filenames2 = [os.path.basename(path) for path in paths2]
+
+        # 找到两个列表中不同的部分
+        unmatched1 = set(filenames1) - set(filenames2)
+        unmatched2 = set(filenames2) - set(filenames1)
+
+        print(unmatched1, unmatched2)
+
+        return unmatched1, unmatched2
