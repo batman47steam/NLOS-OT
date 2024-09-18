@@ -1,6 +1,7 @@
 import time
 import os
 
+import cv2
 import torch
 
 from options.test_options import TestOptions
@@ -16,6 +17,7 @@ from util.metrics import ssim
 from PIL import Image
 
 # 对齐ssim
+import os.path as osp
 import numpy as np
 from pytorch_msssim import ssim as ssim_standard
 
@@ -52,13 +54,24 @@ if __name__ == '__main__':
 	lpips_score_alex = lpips.LPIPS(net='alex').cuda()
 	lpips_score_vgg = lpips.LPIPS(net='vgg').cuda()
 
+	# 加上一个图片保存的路径, 如果没有就创建
+	save_dir = './result_pair'
+	os.makedirs(save_dir, exist_ok=True)
+
 	for i, data in enumerate(dataset):
 		if i >= opt.how_many:
 			break
 		counter = i
 		# pdb.set_trace()
 		model.set_input(data)
-		model.test() # test里面会针对各个部分进行前向推理，然存储为自己的self变量
+		with torch.no_grad():
+			model.test() # test里面会针对各个部分进行前向推理，然存储为自己的self变量
+
+		# 模型的输出归一化到（0-1）之间以后计算ssim
+		fake_screen = (model.fake_Bi + 1) / 2.0
+		real_screen = (model.real_B + 1) / 2.0
+		avgSSIM_me += ssim_standard(fake_screen, real_screen, data_range=1, size_average=True)
+
 		visuals = model.get_current_visuals()
 		avgPSNR += PSNR(visuals['fake_B'],visuals['real_B']) # fake_B是在step1中由AE生成的，fake_Bi是由半影带生成的
 		avgPSNR_i += PSNR(visuals['fake_Bi'],visuals['real_B'])
@@ -66,14 +79,20 @@ if __name__ == '__main__':
 		avgSSIM += ssim(visuals['fake_B'],visuals['real_B']) # 图片的范围都是0-255
 		avgSSIM_i += ssim(visuals['fake_Bi'],visuals['real_B'])
 
+		# 把visuals里面的东西保存，visuals里面的内容已经是numpy的了，新建一个目录
+		results = np.concatenate((visuals['fake_Bi'], visuals['real_B']), axis=1)
+		results = cv2.cvtColor(results, cv2.COLOR_RGB2BGR)
+		cv2.imwrite(osp.join(save_dir, f'test_{str(i)}.jpg'), results)
+
+
 		# 从0-255的numpy再变到0-255的double的tensor
-		fake = np.transpose(visuals['fake_Bi'], (2,0,1)) # H,W,C -> C,H,W
-		real = np.transpose(visuals['real_B'], (2,0,1))
-		fake = torch.from_numpy(fake).float()
-		fake = fake.unsqueeze(0).cuda() # B,C,H,W
-		real = torch.from_numpy(real).float()
-		real = real.unsqueeze(0).cuda()
-		avgSSIM_me += ssim_standard(fake, real, data_range=255, size_average=True)
+		# fake = np.transpose(visuals['fake_Bi'], (2,0,1)) # H,W,C -> C,H,W
+		# real = np.transpose(visuals['real_B'], (2,0,1))
+		# fake = torch.from_numpy(fake).float()
+		# fake = fake.unsqueeze(0).cuda() # B,C,H,W
+		# real = torch.from_numpy(real).float()
+		# real = real.unsqueeze(0).cuda()
+		#avgSSIM_me += ssim_standard(fake, real, data_range=255, size_average=True)
 
 		# lpips这些是需要归一化到(-1,1)以后计算的
 		# fake = fake / 255.0
