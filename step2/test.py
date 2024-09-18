@@ -1,5 +1,8 @@
 import time
 import os
+
+import torch
+
 from options.test_options import TestOptions
 from data.data_loader import CreateDataLoader
 from models.models import create_model
@@ -12,57 +15,102 @@ from util.metrics import SSIM
 from util.metrics import ssim
 from PIL import Image
 
+# 对齐ssim
+import numpy as np
+from pytorch_msssim import ssim as ssim_standard
 
-opt = TestOptions().parse()
-opt.nThreads = 1
-opt.batchSize = 1
-opt.serial_batches = True
-opt.no_flip = True
+# 对齐lpips
+import lpips
 
-data_loader = CreateDataLoader(opt)
-dataset = data_loader.load_data()
-model = create_model(opt)
-visualizer = Visualizer(opt)
-# create website
-web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s_%s' % (opt.phase, opt.which_epoch,opt.snrnote))
-webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
-# test
-avgPSNR = 0.0
-avgSSIM = 0.0
-avgPSNR_i = 0.0
-avgSSIM_i = 0.0
-avgPSNR_1 = 0.0
-counter = 0
+if __name__ == '__main__':
+	opt = TestOptions().parse()
+	opt.nThreads = 1
+	opt.batchSize = 1
+	opt.serial_batches = True
+	opt.no_flip = True
 
-for i, data in enumerate(dataset):
-	if i >= opt.how_many:
-		break
-	counter = i
-	# pdb.set_trace()
-	model.set_input(data)
-	model.test()
-	visuals = model.get_current_visuals()
-	avgPSNR += PSNR(visuals['fake_B'],visuals['real_B'])
-	avgPSNR_i += PSNR(visuals['fake_Bi'],visuals['real_B'])
-	avgPSNR_1 += getpsnr(visuals['fake_Bi'],visuals['real_B'])
-	avgSSIM += ssim(visuals['fake_B'],visuals['real_B'])
-	avgSSIM_i += ssim(visuals['fake_Bi'],visuals['real_B'])
-	img_path = model.get_image_paths()
-	print('process image... %s' % img_path)
-	visualizer.save_images(webpage, visuals, img_path)
+	data_loader = CreateDataLoader(opt)
+	dataset = data_loader.load_data()
+	model = create_model(opt)
+	visualizer = Visualizer(opt)
+	# create website
+	web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s_%s' % (opt.phase, opt.which_epoch,opt.snrnote))
+	webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
+	# test
+	avgPSNR = 0.0
+	avgSSIM = 0.0
+	avgPSNR_i = 0.0
+	avgSSIM_i = 0.0
+	avgPSNR_1 = 0.0
+	# new metric
+	avgSSIM_me = 0.0
+	avgLPIPS_alex = 0.0
+	avgLPIPS_vgg = 0.0
+	counter = 0
 
-	
-avgPSNR /= counter
-avgSSIM /= counter
-avgPSNR_i /= counter
-avgPSNR_1 /= counter
-avgSSIM_i /= counter
-txtName = "note.txt"
-filedir = os.path.join(web_dir,txtName)
-f=open(filedir, "a+")
-new_context = 'PSNR = '+  str(avgPSNR) + ';SSIM=' + str(avgSSIM) + '\n'+ ';PSNR_i=' + str(avgPSNR_i) +';PSNR_1=' + str(avgPSNR_1) + ';SSIM_i=' + str(avgSSIM_i) + '\n'
-f.write(new_context)
-print('PSNR = %f, SSIM = %f,PSNR_i = %f, PSNR_1 = %f, SSIM_i = %f' %
-				  (avgPSNR, avgSSIM, avgPSNR_i,avgPSNR_1, avgSSIM_i))
+	# lpips
+	lpips_score_alex = lpips.LPIPS(net='alex').cuda()
+	lpips_score_vgg = lpips.LPIPS(net='vgg').cuda()
 
-webpage.save()
+	for i, data in enumerate(dataset):
+		if i >= opt.how_many:
+			break
+		counter = i
+		# pdb.set_trace()
+		model.set_input(data)
+		model.test() # test里面会针对各个部分进行前向推理，然存储为自己的self变量
+		visuals = model.get_current_visuals()
+		avgPSNR += PSNR(visuals['fake_B'],visuals['real_B']) # fake_B是在step1中由AE生成的，fake_Bi是由半影带生成的
+		avgPSNR_i += PSNR(visuals['fake_Bi'],visuals['real_B'])
+		avgPSNR_1 += getpsnr(visuals['fake_Bi'],visuals['real_B'])
+		avgSSIM += ssim(visuals['fake_B'],visuals['real_B']) # 图片的范围都是0-255
+		avgSSIM_i += ssim(visuals['fake_Bi'],visuals['real_B'])
+
+		# 从0-255的numpy再变到0-255的double的tensor
+		fake = np.transpose(visuals['fake_Bi'], (2,0,1)) # H,W,C -> C,H,W
+		real = np.transpose(visuals['real_B'], (2,0,1))
+		fake = torch.from_numpy(fake).float()
+		fake = fake.unsqueeze(0).cuda() # B,C,H,W
+		real = torch.from_numpy(real).float()
+		real = real.unsqueeze(0).cuda()
+		avgSSIM_me += ssim_standard(fake, real, data_range=255, size_average=True)
+
+		# lpips这些是需要归一化到(-1,1)以后计算的
+		# fake = fake / 255.0
+		# real = real / 255.0
+		# lpips_alex = lpips_score_alex((fake-0.5)/0.5, (real-0.5)/0.5)
+		# lpips_alex = torch.mean(lpips_alex)
+		# avgLPIPS_alex += lpips_alex
+		avgLPIPS_alex = 0
+
+		# lpips_vgg = lpips_score_vgg((fake - 0.5) / 0.5, (real - 0.5) / 0.5)
+		# lpips_vgg = torch.mean(lpips_vgg)
+		# avgLPIPS_vgg += lpips_vgg
+		avgLPIPS_vgg = 0
+
+		img_path = model.get_image_paths()
+		print('process image... %s' % img_path)
+		visualizer.save_images(webpage, visuals, img_path)
+
+
+	avgPSNR /= counter
+	avgSSIM /= counter
+	avgPSNR_i /= counter
+	avgPSNR_1 /= counter
+	avgSSIM_i /= counter
+	avgSSIM_me /= counter
+	avgLPIPS_alex /= counter
+	avgLPIPS_vgg /= counter
+	txtName = "note.txt"
+	filedir = os.path.join(web_dir,txtName)
+	f=open(filedir, "a+")
+	new_context = 'PSNR = '+  str(avgPSNR) + ';SSIM=' + str(avgSSIM) + '\n'+ ';PSNR_i=' + str(avgPSNR_i) +';PSNR_1=' + str(avgPSNR_1) + ';SSIM_i=' + str(avgSSIM_i) + '\n'
+	f.write(new_context)
+	print('PSNR = %f, SSIM = %f,PSNR_i = %f, PSNR_1 = %f, SSIM_i = %f' %
+					  (avgPSNR, avgSSIM, avgPSNR_i,avgPSNR_1, avgSSIM_i))
+
+	print('standard_ssim:', avgSSIM_me)
+	print('lpips_alex:', avgLPIPS_alex)
+	print('lpips_vgg:', avgLPIPS_vgg)
+
+	webpage.save()
