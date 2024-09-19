@@ -10,9 +10,9 @@ import collections
 # Converts a Tensor into a Numpy array
 # |imtype|: the desired type of the converted numpy array
 def tensor2im(image_tensor, imtype=np.uint8):
-	image_numpy = image_tensor[0].cpu().float().numpy()
-	image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
-	return image_numpy.astype(imtype)
+	image_numpy = image_tensor[0].cpu().float().numpy() # tensor的类型是float32
+	image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0 # 输出是(-1,1),还原回0-255
+	return image_numpy.astype(imtype) # 转换为numpy的uint8
 
 
 def diagnose_network(net, name='network'):
