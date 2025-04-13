@@ -28,7 +28,9 @@ class TestModel(BaseModel):
             trainable_num = sum(p.numel() for p in self.encoder2.parameters() if p.requires_grad)
             print(trainable_num)
             print(self.netG)
-            self.load_network(self.netG.encoder, 'G_Encoder1', opt.which_epoch)
+            #self.load_network(self.netG.encoder, 'G_Encoder1', opt.which_epoch) # 这里对应了测试时加载的权重
+            #self.load_network(self.netG.decoder, 'G_Decoder', opt.which_epoch)
+            self.load_network(self.netG.encoder, 'G_Encoder1', opt.which_epoch)  # 这里对应了测试时加载的权重
             self.load_network(self.netG.decoder, 'G_Decoder', opt.which_epoch)
             self.load_network(self.encoder2, 'G_Encoder2', opt.which_epoch)
         else:

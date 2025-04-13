@@ -47,7 +47,7 @@ class ConditionalGAN(BaseModel):
 			which_data = opt.which_data
 			which_ep = opt.which_ep
 
-			# load E1 and D1
+			# load E1 and D1，这里对应的是step1中加载的结果
 			self.load_ae(self.netG.encoder, which_ep,'E1', which_data,opt.norm) # 加载step1中训练时得到的权重
 			self.load_ae(self.netG.decoder, which_ep,'D', which_data,opt.norm)
 			in_content = input('Press Enter to CONFIRM trained AE weight loaded')
