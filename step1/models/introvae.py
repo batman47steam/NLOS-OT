@@ -17,7 +17,7 @@ class _Residual_Block(nn.Module):
         
         midc=int(outc*scale)
         
-        if inc is not outc:
+        if inc is not outc: # conv_expand也不是每一个都有的
           self.conv_expand = nn.Conv2d(in_channels=inc, out_channels=outc, kernel_size=1, stride=1, padding=0, groups=1, bias=False)
         else:
           self.conv_expand = None
@@ -51,7 +51,7 @@ class IntroAEEncoder(nn.Module):
     def __init__(self, norm, cdim=3, hdim=512, channels=[64, 128, 256, 512, 512, 512], image_size=256):
         super(IntroAEEncoder, self).__init__() 
         
-        assert (2 ** len(channels)) * 4 == image_size
+        #assert (2 ** len(channels)) * 4 == image_size
         
         self.hdim = hdim
         cc = channels[0]
@@ -77,11 +77,13 @@ class IntroAEEncoder(nn.Module):
             cc, sz = ch, sz//2
         
         self.main.add_module('res_in_{}'.format(sz), _Residual_Block(norm, cc, cc, scale=1.0))                    
-        self.fc = nn.Linear((cc)*4*4, 2*hdim)
+        #self.fc = nn.Linear((cc)*4*4, 2*hdim)
+        self.fc = nn.Linear(512*3*3, 2*hdim) # 直接写了512*4
         self.fc2 = nn.Linear(2*hdim, hdim)           
     
     def forward(self, x):        
-        y = self.main(x).view(x.size(0), -1)
+        y = self.main(x) # 3x36x36 => 512 x 2 x 2
+        y=y.view(x.size(0), -1)
         y = self.fc(y)
         y = self.fc2(y)
         return y
@@ -90,11 +92,11 @@ class IntroAEDecoder(nn.Module):
     def __init__(self, norm, cdim=3, hdim=512, channels=[64, 128, 256, 512, 512, 512], image_size=256):
         super(IntroAEDecoder, self).__init__() 
         
-        assert (2 ** len(channels)) * 4 == image_size
+        #assert (2 ** len(channels)) * 4 == image_size
         
         cc = channels[-1]
         self.fc = nn.Sequential(
-                      nn.Linear(hdim, cc*4*4),
+                      nn.Linear(hdim, 512*3*3), # 512x2x2
                       nn.ReLU(True),
                   )
         sz = 4
@@ -112,7 +114,7 @@ class IntroAEDecoder(nn.Module):
     def forward(self, z):
         z = z.view(z.size(0), -1)
         y = self.fc(z)
-        y = y.view(z.size(0), -1, 4, 4)
+        y = y.view(z.size(0), -1, 3, 3) # 反正就是在这里要能够对应上
         y = self.main(y)
         return y
         

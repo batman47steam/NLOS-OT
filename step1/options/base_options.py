@@ -50,7 +50,7 @@ class BaseOptions():
 		self.parser.add_argument("--weight_rec", type=float, default=1.0, help="Default=1.0")
 		self.parser.add_argument("--weight_kl", type=float, default=1.0, help="Default=1.0")
 		self.parser.add_argument("--m_plus", type=float, default=100.0, help="the margin in the adversarial part, Default=100.0")
-		self.parser.add_argument('--channels', default="64, 128, 256, 512, 512, 512", type=str, help='the list of channel numbers')
+		self.parser.add_argument('--channels', default="64, 128, 256, 512", type=str, help='the list of channel numbers')
 		self.parser.add_argument("--hdim", type=int, default=512, help="dim of the latent code, Default=512")
 		self.parser.add_argument('--input_height', type=int, default=256, help='the height  of the input image to network')
 		self.parser.add_argument('--input_width', type=int, default=None, help='the width  of the input image to network')
