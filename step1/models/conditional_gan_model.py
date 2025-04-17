@@ -131,8 +131,8 @@ class ConditionalGAN(BaseModel):
 								])
 
 	def get_current_visuals(self):
-		real_A = util.tensor2im(self.real_A.data)
-		fake_B = util.tensor2im(self.fake_B.data)
+		real_A = util.tensor2im(self.real_A.data) # Real_A和Real_B都是真值
+		fake_B = util.tensor2im(self.fake_B.data) # fake_B是重建的结果
 		real_B = util.tensor2im(self.real_B.data)
 		return OrderedDict([('Blurred_Train', real_A), ('Restored_Train', fake_B), ('Sharp_Train', real_B)])
 
