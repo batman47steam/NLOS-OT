@@ -48,6 +48,7 @@ class ConditionalGAN(BaseModel):
 			which_ep = opt.which_ep
 
 			# load E1 and D1，这里对应的是step1中加载的结果
+			# 如果改了路径，这里step1的路径也要修改下
 			self.load_ae(self.netG.encoder, which_ep,'E1', which_data,opt.norm) # 加载step1中训练时得到的权重
 			self.load_ae(self.netG.decoder, which_ep,'D', which_data,opt.norm)
 			in_content = input('Press Enter to CONFIRM trained AE weight loaded')
@@ -164,7 +165,7 @@ class ConditionalGAN(BaseModel):
 		real_B = util.tensor2im(self.real_B.data)
 		return OrderedDict([('Blurred_Train', real_A), ('Restored_Train', fake_B), ('Restored_Train_fromi', fake_Bi),('Sharp_Train', real_B)])
 
-
+	# label好说，label就是对应于epoch数目，或者latest之类的
 	def save(self, label):
 		if self.opt.which_model_netG == 'introAE':
 			self.save_network(self.encoder2, 'G_Encoder2', label, self.gpu_ids)

@@ -18,6 +18,7 @@ def train(opt, data_loader, model, visualizer):
 	model.ganStep = 0
 	model.aeStep = 1
 	# start train
+	# opt.epoch_count基本上1，opt.niter是学习率持续不变的epoch，opt.niter+opt.niter_decay+1就是总的epoch
 	for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
 		opt.phase = 'train'
 		data_loader = CreateDataLoader(opt)
@@ -100,11 +101,12 @@ def train(opt, data_loader, model, visualizer):
 		if epoch > opt.niter:
 			model.update_learning_rate() 
 
-opt = TrainOptions().parse() 
-data_loader = CreateDataLoader(opt)
-model = create_model(opt)
-visualizer = Visualizer(opt)
-train(opt, data_loader, model, visualizer)
+if __name__ == '__main__':
+	opt = TrainOptions().parse()
+	data_loader = CreateDataLoader(opt)
+	model = create_model(opt)
+	visualizer = Visualizer(opt)
+	train(opt, data_loader, model, visualizer)
 
 
 
