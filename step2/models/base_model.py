@@ -12,7 +12,7 @@ class BaseModel():
         self.gpu_ids = opt.gpu_ids
         self.isTrain = opt.isTrain
         self.Tensor = torch.cuda.FloatTensor if self.gpu_ids else torch.Tensor
-        self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)
+        self.save_dir = os.path.join(opt.checkpoints_dir, opt.name) # save_dir和之前一样
 
     def set_input(self, input):
         self.input = input
@@ -48,12 +48,13 @@ class BaseModel():
 
     # helper loading function that can be used by subclasses
     def load_network(self, network, network_label, epoch_label):
-        save_filename = '%s_net_%s.pth' % (epoch_label, network_label)
+        save_filename = '%s_net_%s.pth' % (epoch_label, network_label) # 名称基本固定 20_net_G_Decoder.pth
         save_path = os.path.join(self.save_dir, save_filename)  # self.save_dir是前面就确定的
         state_dict = torch.load(save_path)
         network.load_state_dict(state_dict)
 
     # load E1 and D1 trained in step 1
+    # 设置成step1中保存的就行了
     def load_ae(self, network, which_ep, whichblock, which_data, which_norm):
         if self.opt.which_model_netG == 'introAE':
             if whichblock == 'E1':
@@ -107,7 +108,8 @@ class BaseModel():
                         print(save_filename + 'has been loaded')
                 elif which_data == 'stl10':
                     if which_norm == 'batch':
-                        save_filename = 'stl10_batch_Encoder_tanh_ep' + which_ep + '.pth'
+                        #save_filename = 'stl10_batch_Encoder_tanh_ep' + which_ep + '.pth'
+                        save_filename = which_ep + '_net_' + 'G_Encoder1.pth' # 直接自己定义了一下，要相应的改成这种形式
                         weight_path = '../nlos-ot/TrainedWeight'
                         save_path = os.path.join(weight_path, save_filename)
                         state_dict = torch.load(save_path)
@@ -166,7 +168,8 @@ class BaseModel():
                         print(save_filename + 'has been loaded')
                 elif which_data == 'stl10':
                     if which_norm == 'batch':
-                        save_filename = 'stl10_batch_Decoder_tanh_ep' + which_ep + '.pth'
+                        #save_filename = 'stl10_batch_Decoder_tanh_ep' + which_ep + '.pth'
+                        save_filename = which_ep + '_net_' + 'G_Decoder.pth' # Decoder是公用的不区分1还是2
                         weight_path = '../nlos-ot/TrainedWeight'
                         save_path = os.path.join(weight_path, save_filename)
                         state_dict = torch.load(save_path)
