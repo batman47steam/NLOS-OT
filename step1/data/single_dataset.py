@@ -92,13 +92,15 @@ class SingleDataset(BaseDataset):
         # load groundtruth
         B_path = self.B_paths[index]
         B_img = Image.open(B_path).convert('RGB')
-        B_img = B_img.resize((256, 256), Image.BICUBIC)
+        B_img = self.pad_img(B_img, 48)
+        #B_img = B_img.resize((256, 256), Image.BICUBIC)
         B_img = self.transform(B_img)
 
         # load input
         A_path = self.A_paths[index]
         A_img = Image.open(A_path).convert('RGB')
-        A_img = A_img.resize((256, 256), Image.BICUBIC)
+        A_img = self.pad_img(A_img, 48)
+        #A_img = A_img.resize((256, 256), Image.BICUBIC)
         A_img = self.transform(A_img)
 
         return {'A': A_img, 'A_paths': A_path,'B': B_img, 'B_paths': B_path}
@@ -108,3 +110,21 @@ class SingleDataset(BaseDataset):
 
     def name(self):
         return 'SingleImageDataset'
+
+    def pad_img(self, x, target_size):
+        # 获取原始图像的尺寸
+        w, h = x.size
+        
+        # 计算需要填充的尺寸
+        pad_w = max(0, target_size - w)
+        pad_h = max(0, target_size - h)
+        
+        # 计算左右和上下的padding
+        # 29x36对应的padding结果 => (0,3,0,4), 取出来的时候也要这样取
+        padding = (pad_w // 2, pad_h // 2, pad_w - pad_w // 2, pad_h - pad_h // 2)
+        
+        # 使用黑色(0,0,0)进行填充
+        padded_img = transforms.Pad(padding, fill=0)(x)
+        
+        return padded_img
+
