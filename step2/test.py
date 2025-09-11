@@ -287,6 +287,7 @@ if __name__ == '__main__':
 	avgPSNR_1 = 0.0
 	# new metric
 	avgSSIM_me = 0.0
+	avgSSIM_me_255 = 0.0
 	avgSSIM_ltm = 0.0
 	avgLPIPS_alex = 0.0
 	avgLPIPS_vgg = 0.0
@@ -297,7 +298,7 @@ if __name__ == '__main__':
 	lpips_score_vgg = lpips.LPIPS(net='vgg').cuda()
 
 	# 加上一个图片保存的路径, 如果没有就创建
-	save_dir = './MNIST_pair'
+	save_dir = './stl_pair'
 	os.makedirs(save_dir, exist_ok=True)
 
 	for i, data in enumerate(dataset):
@@ -324,19 +325,21 @@ if __name__ == '__main__':
 
 		visuals = model.get_current_visuals() # 这个步骤出来的都变成numpy了，而且是0-255之间
 		#avgPSNR += PSNR(visuals['fake_B'],visuals['real_B']) # fake_B是在step1中由AE生成的，fake_Bi是由半影带生成的
-		#avgPSNR_i += PSNR(visuals['fake_Bi'],visuals['real_B'])
+		avgPSNR_i += PSNR(visuals['fake_Bi'],visuals['real_B'])
 		#avgPSNR_1 += getpsnr(visuals['fake_Bi'],visuals['real_B'])
 		#avgSSIM += ssim(visuals['fake_B'],visuals['real_B']) # 图片的范围都是0-255
-		#avgSSIM_i += ssim(visuals['fake_Bi'],visuals['real_B'])
+		avgSSIM_i += ssim(visuals['fake_Bi'],visuals['real_B'])
+		#print(visuals['fake_Bi'].shape, visuals['real_B'].shape)
+		#avgSSIM_me_255 += ssim_standard(visuals['fake_Bi'], visuals['real_B'], data_range=255, size_average=True)
 		avgSSIM_ltm += calculate_ssim_ltm(visuals['fake_Bi'], visuals['real_B'], crop_border=0)
 
 
 
 
 		# 把visuals里面的东西保存，visuals里面的内容已经是numpy的了，新建一个目录
-		# results = np.concatenate((visuals['fake_Bi'], visuals['real_B']), axis=1)
-		# results = cv2.cvtColor(results, cv2.COLOR_RGB2BGR)
-		# cv2.imwrite(osp.join(save_dir, f'test_{str(i)}.jpg'), results)
+		results = np.concatenate((visuals['fake_Bi'], visuals['real_B']), axis=1)
+		results = cv2.cvtColor(results, cv2.COLOR_RGB2BGR)
+		cv2.imwrite(osp.join(save_dir, f'test_{str(i)}.jpg'), results)
 
 
 
@@ -347,7 +350,7 @@ if __name__ == '__main__':
 		# fake = fake.unsqueeze(0).cuda() # B,C,H,W
 		# real = torch.from_numpy(real).float()
 		# real = real.unsqueeze(0).cuda()
-		#avgSSIM_me += ssim_standard(fake, real, data_range=255, size_average=True)
+		# avgSSIM_me += ssim_standard(fake, real, data_range=255, size_average=True)
 
 		# lpips这些是需要归一化到(-1,1)以后计算的
 		# fake = fake / 255.0
@@ -375,6 +378,7 @@ if __name__ == '__main__':
 	avgPSNR_1 /= counter
 	avgSSIM_i /= counter
 	avgSSIM_me /= counter
+	avgSSIM_me_255 /= counter
 	avgSSIM_ltm /= counter
 	avgLPIPS_alex /= counter
 	avgLPIPS_vgg /= counter
@@ -387,7 +391,9 @@ if __name__ == '__main__':
 					  (avgPSNR, avgSSIM, avgPSNR_i,avgPSNR_1, avgSSIM_i))
 
 	print('standard_ssim:', avgSSIM_me)
+	print('standard_ssim_255:', avgSSIM_me_255)
 	print('ltm_ssim:', avgSSIM_ltm)
+	print('ot_ssim:', avgSSIM_i)
 	print('lpips_alex:', avgLPIPS_alex)
 	print('lpips_vgg:', avgLPIPS_vgg)
 
